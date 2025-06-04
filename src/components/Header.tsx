@@ -50,8 +50,8 @@ const Header = () => {
                 Menu
               </button>
               {isAdmin && (
-                <a href="/inventory" className="text-gray-700 hover:text-orange-600 transition-colors">
-                  Admin Panel
+                <a href="/admin" className="text-gray-700 hover:text-orange-600 transition-colors">
+                  Admin Dashboard
                 </a>
               )}
               <a href="/pos" className="text-gray-700 hover:text-orange-600 transition-colors">

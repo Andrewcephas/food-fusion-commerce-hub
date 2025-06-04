@@ -51,7 +51,14 @@ export const useProducts = (searchTerm?: string, categoryFilter?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setProducts(data || []);
+      
+      // Transform data to match Product interface
+      const transformedProducts: Product[] = (data || []).map(item => ({
+        ...item,
+        customizations: Array.isArray(item.customizations) ? item.customizations : []
+      }));
+      
+      setProducts(transformedProducts);
     } catch (err: any) {
       setError(err.message);
     } finally {
