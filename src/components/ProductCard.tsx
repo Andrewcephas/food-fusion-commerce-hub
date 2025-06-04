@@ -5,21 +5,22 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
 import ProductModal from './ProductModal';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   price: number;
-  image: string;
-  category: string;
+  image_url: string;
   description: string;
-  inStock: number;
-  lowStockThreshold: number;
-  customizations: Array<{
+  in_stock: number;
+  low_stock_threshold: number;
+  customizations: any[];
+  categories?: {
     name: string;
-    options: string[];
-  }>;
+  };
 }
 
 interface ProductCardProps {
@@ -29,18 +30,39 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+  const { addToCart } = useCart();
+  const { user } = useAuth();
 
-  const isLowStock = product.inStock <= product.lowStockThreshold;
-  const isOutOfStock = product.inStock === 0;
+  const isLowStock = product.in_stock <= product.low_stock_threshold;
+  const isOutOfStock = product.in_stock === 0;
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
+  const handleQuickAdd = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isOutOfStock) return;
     
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart`,
-    });
+    try {
+      await addToCart(product.id, 1);
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -51,14 +73,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
       >
         <div className="relative overflow-hidden rounded-t-lg">
           <img
-            src={product.image}
+            src={product.image_url}
             alt={product.name}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute top-2 left-2 space-y-1">
-            <Badge variant="secondary" className="bg-white/90 text-gray-700">
-              {product.category}
-            </Badge>
+            {product.categories && (
+              <Badge variant="secondary" className="bg-white/90 text-gray-700">
+                {product.categories.name}
+              </Badge>
+            )}
             {isLowStock && !isOutOfStock && (
               <Badge variant="destructive" className="bg-yellow-500 hover:bg-yellow-600">
                 Low Stock
@@ -72,7 +96,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </div>
           <div className="absolute top-2 right-2">
             <Badge className="bg-green-500 hover:bg-green-600 text-white">
-              ${product.price}
+              KES {product.price.toFixed(2)}
             </Badge>
           </div>
         </div>
@@ -85,8 +109,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
             {product.description}
           </p>
           <div className="flex items-center justify-between text-sm text-gray-500">
-            <span>In Stock: {product.inStock}</span>
-            <span>{product.customizations.length} options</span>
+            <span>In Stock: {product.in_stock}</span>
+            <span>{product.customizations?.length || 0} options</span>
           </div>
         </CardContent>
 

@@ -1,374 +1,271 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Package, 
-  AlertTriangle, 
-  TrendingUp, 
-  TrendingDown, 
-  Search,
-  Plus,
-  Edit,
-  Trash2 
-} from 'lucide-react';
-
-interface InventoryItem {
-  id: number;
-  name: string;
-  category: string;
-  currentStock: number;
-  minStock: number;
-  maxStock: number;
-  price: number;
-  supplier: string;
-  lastUpdated: string;
-}
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/hooks/useAuth';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import Header from '@/components/Header';
+import { Badge } from '@/components/ui/badge';
+import { Edit, Trash2, Plus } from 'lucide-react';
 
 const InventoryDashboard = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const inventoryItems: InventoryItem[] = [
-    {
-      id: 1,
-      name: "Pizza Dough",
-      category: "Ingredients",
-      currentStock: 15,
-      minStock: 10,
-      maxStock: 50,
-      price: 2.50,
-      supplier: "Fresh Ingredients Co.",
-      lastUpdated: "2024-01-15"
-    },
-    {
-      id: 2,
-      name: "Mozzarella Cheese",
-      category: "Dairy",
-      currentStock: 3,
-      minStock: 5,
-      maxStock: 25,
-      price: 8.99,
-      supplier: "Dairy Fresh Ltd.",
-      lastUpdated: "2024-01-14"
-    },
-    {
-      id: 3,
-      name: "Chicken Breast",
-      category: "Meat",
-      currentStock: 22,
-      minStock: 15,
-      maxStock: 40,
-      price: 12.99,
-      supplier: "Premium Meats",
-      lastUpdated: "2024-01-15"
-    },
-    {
-      id: 4,
-      name: "Lettuce",
-      category: "Vegetables",
-      currentStock: 8,
-      minStock: 10,
-      maxStock: 30,
-      price: 3.49,
-      supplier: "Green Valley Farms",
-      lastUpdated: "2024-01-13"
-    },
-    {
-      id: 5,
-      name: "Tomatoes",
-      category: "Vegetables",
-      currentStock: 25,
-      minStock: 15,
-      maxStock: 35,
-      price: 4.99,
-      supplier: "Green Valley Farms",
-      lastUpdated: "2024-01-15"
-    }
-  ];
+  const { isAdmin } = useAuth();
+  const { products, refetch } = useProducts();
+  const { categories } = useCategories();
+  const { toast } = useToast();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const lowStockItems = inventoryItems.filter(item => item.currentStock <= item.minStock);
-  const totalItems = inventoryItems.length;
-  const totalValue = inventoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category_id: '',
+    in_stock: '',
+    image_url: '',
+  });
 
-  const getStockStatus = (item: InventoryItem) => {
-    if (item.currentStock <= item.minStock) return 'low';
-    if (item.currentStock >= item.maxStock * 0.8) return 'high';
-    return 'normal';
-  };
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-600">You need admin privileges to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
-  const getStockBadge = (item: InventoryItem) => {
-    const status = getStockStatus(item);
-    switch (status) {
-      case 'low':
-        return <Badge variant="destructive">Low Stock</Badge>;
-      case 'high':
-        return <Badge className="bg-green-500 hover:bg-green-600">In Stock</Badge>;
-      default:
-        return <Badge variant="secondary">Normal</Badge>;
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .insert({
+          name: newProduct.name,
+          description: newProduct.description,
+          price: parseFloat(newProduct.price),
+          category_id: newProduct.category_id,
+          in_stock: parseInt(newProduct.in_stock),
+          image_url: newProduct.image_url,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Product added successfully!",
+      });
+
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        category_id: '',
+        in_stock: '',
+        image_url: '',
+      });
+      setShowAddForm(false);
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredItems = inventoryItems.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const updateStock = async (productId: string, newStock: number) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ in_stock: newStock })
+        .eq('id', productId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Stock updated successfully!",
+      });
+
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Management</h1>
-          <p className="text-gray-600">Track stock levels and manage your inventory</p>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Product
+          </Button>
         </div>
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+        {showAddForm && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Add New Product</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Items</p>
-                  <p className="text-2xl font-bold">{totalItems}</p>
-                </div>
-                <Package className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Low Stock Alerts</p>
-                  <p className="text-2xl font-bold text-red-500">{lowStockItems.length}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-red-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Value</p>
-                  <p className="text-2xl font-bold text-green-600">${totalValue.toFixed(2)}</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Categories</p>
-                  <p className="text-2xl font-bold">5</p>
-                </div>
-                <TrendingDown className="w-8 h-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Low Stock Alerts */}
-        {lowStockItems.length > 0 && (
-          <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-red-700">
-              <strong>Low Stock Alert:</strong> {lowStockItems.length} items are running low. 
-              Consider restocking: {lowStockItems.map(item => item.name).join(', ')}.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs defaultValue="inventory" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="inventory">Inventory</TabsTrigger>
-            <TabsTrigger value="alerts">Low Stock Alerts</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="inventory">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Inventory Items</CardTitle>
-                  <Button className="bg-orange-500 hover:bg-orange-600">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Item
-                  </Button>
-                </div>
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Label htmlFor="name">Product Name</Label>
                   <Input
-                    placeholder="Search inventory..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    id="name"
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                    required
                   />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-4 font-medium">Item</th>
-                        <th className="text-left p-4 font-medium">Category</th>
-                        <th className="text-left p-4 font-medium">Current Stock</th>
-                        <th className="text-left p-4 font-medium">Min/Max</th>
-                        <th className="text-left p-4 font-medium">Price</th>
-                        <th className="text-left p-4 font-medium">Status</th>
-                        <th className="text-left p-4 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredItems.map((item) => (
-                        <tr key={item.id} className="border-b hover:bg-gray-50">
-                          <td className="p-4">
-                            <div>
-                              <div className="font-medium">{item.name}</div>
-                              <div className="text-sm text-gray-500">{item.supplier}</div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <Badge variant="outline">{item.category}</Badge>
-                          </td>
-                          <td className="p-4">
-                            <span className="font-semibold">{item.currentStock}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className="text-sm text-gray-600">
-                              {item.minStock} / {item.maxStock}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <span className="font-medium">${item.price.toFixed(2)}</span>
-                          </td>
-                          <td className="p-4">
-                            {getStockBadge(item)}
-                          </td>
-                          <td className="p-4">
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
+                
+                <div>
+                  <Label htmlFor="price">Price (KES)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={newProduct.category_id} onValueChange={(value) => setNewProduct({ ...newProduct, category_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
                       ))}
-                    </tbody>
-                  </table>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="alerts">
-            <Card>
+                <div>
+                  <Label htmlFor="stock">Initial Stock</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    value={newProduct.in_stock}
+                    onChange={(e) => setNewProduct({ ...newProduct, in_stock: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="image">Image URL</Label>
+                  <Input
+                    id="image"
+                    type="url"
+                    value={newProduct.image_url}
+                    onChange={(e) => setNewProduct({ ...newProduct, image_url: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2 flex gap-4">
+                  <Button type="submit" disabled={loading} className="bg-orange-500 hover:bg-orange-600">
+                    {loading ? 'Adding...' : 'Add Product'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <Card key={product.id}>
               <CardHeader>
-                <CardTitle>Low Stock Alerts</CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{product.name}</CardTitle>
+                  <Badge variant={product.in_stock <= product.low_stock_threshold ? "destructive" : "secondary"}>
+                    Stock: {product.in_stock}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {lowStockItems.map((item) => (
-                    <Alert key={item.id} className="border-yellow-200 bg-yellow-50">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                      <AlertDescription>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <strong>{item.name}</strong> - Only {item.currentStock} units left 
-                            (Min: {item.minStock})
-                          </div>
-                          <Button size="sm" className="bg-orange-500 hover:bg-orange-600">
-                            Reorder
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  ))}
-                  {lowStockItems.length === 0 && (
-                    <p className="text-gray-500 text-center py-8">No low stock alerts at this time.</p>
-                  )}
+                <img 
+                  src={product.image_url} 
+                  alt={product.name}
+                  className="w-full h-32 object-cover rounded mb-4"
+                />
+                <p className="text-sm text-gray-600 mb-2">{product.description}</p>
+                <p className="font-bold text-green-600 mb-4">KES {product.price.toFixed(2)}</p>
+                
+                <div className="flex items-center gap-2 mb-4">
+                  <Label htmlFor={`stock-${product.id}`} className="text-sm">Update Stock:</Label>
+                  <Input
+                    id={`stock-${product.id}`}
+                    type="number"
+                    defaultValue={product.in_stock}
+                    className="w-20"
+                    onBlur={(e) => {
+                      const newStock = parseInt(e.target.value);
+                      if (newStock !== product.in_stock && !isNaN(newStock)) {
+                        updateStock(product.id, newStock);
+                      }
+                    }}
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-red-500">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Stock Distribution by Category</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {['Ingredients', 'Dairy', 'Meat', 'Vegetables'].map((category) => {
-                      const categoryItems = inventoryItems.filter(item => item.category === category);
-                      const categoryValue = categoryItems.reduce((sum, item) => sum + (item.currentStock * item.price), 0);
-                      const percentage = (categoryValue / totalValue) * 100;
-                      
-                      return (
-                        <div key={category}>
-                          <div className="flex justify-between mb-2">
-                            <span className="font-medium">{category}</span>
-                            <span className="text-sm text-gray-600">${categoryValue.toFixed(2)}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-orange-500 h-2 rounded-full" 
-                              style={{ width: `${percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3 p-3 border-l-4 border-green-500 bg-green-50">
-                      <div className="flex-1">
-                        <p className="font-medium">Stock Updated</p>
-                        <p className="text-sm text-gray-600">Tomatoes restocked - 25 units added</p>
-                      </div>
-                      <span className="text-xs text-gray-500">2h ago</span>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 border-l-4 border-yellow-500 bg-yellow-50">
-                      <div className="flex-1">
-                        <p className="font-medium">Low Stock Alert</p>
-                        <p className="text-sm text-gray-600">Mozzarella Cheese below minimum threshold</p>
-                      </div>
-                      <span className="text-xs text-gray-500">4h ago</span>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 border-l-4 border-blue-500 bg-blue-50">
-                      <div className="flex-1">
-                        <p className="font-medium">New Item Added</p>
-                        <p className="text-sm text-gray-600">Pizza Dough added to inventory</p>
-                      </div>
-                      <span className="text-xs text-gray-500">1d ago</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
       </div>
     </div>
   );

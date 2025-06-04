@@ -1,110 +1,125 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, User, Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ShoppingCart, User, LogOut, Settings } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
+import AuthModal from './AuthModal';
 import CartSidebar from './CartSidebar';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, profile, signOut, isAdmin } = useAuth();
+  const { itemCount } = useCart();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const scrollToMenu = () => {
+    document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <>
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">F</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">FoodHub</span>
+      <header className="bg-white shadow-md sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-2xl font-bold text-orange-600">Kenya Eats</h1>
+              <p className="text-sm text-gray-600 hidden sm:block">Authentic Kenyan Cuisine</p>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#menu" className="text-gray-700 hover:text-orange-500 font-medium transition-colors">
+            <nav className="hidden md:flex items-center space-x-6">
+              <button 
+                onClick={scrollToMenu}
+                className="text-gray-700 hover:text-orange-600 transition-colors"
+              >
                 Menu
-              </a>
-              <a href="#about" className="text-gray-700 hover:text-orange-500 font-medium transition-colors">
-                About
-              </a>
-              <a href="#contact" className="text-gray-700 hover:text-orange-500 font-medium transition-colors">
-                Contact
+              </button>
+              {isAdmin && (
+                <a href="/inventory" className="text-gray-700 hover:text-orange-600 transition-colors">
+                  Admin Panel
+                </a>
+              )}
+              <a href="/pos" className="text-gray-700 hover:text-orange-600 transition-colors">
+                POS System
               </a>
             </nav>
 
-            {/* Search Bar */}
-            <div className="hidden md:flex items-center max-w-md flex-1 mx-8">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search for food..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            {/* Actions */}
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="hidden md:flex items-center space-x-2">
-                <User className="w-4 h-4" />
-                <span>Account</span>
-              </Button>
-              
+              {/* Cart Button */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setIsCartOpen(true)}
                 className="relative"
               >
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  3
-                </span>
+                <ShoppingCart className="w-4 h-4" />
+                {itemCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-orange-500">
+                    {itemCount}
+                  </Badge>
+                )}
               </Button>
 
-              {/* Mobile menu button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </Button>
+              {/* User Authentication */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <User className="w-4 h-4 mr-2" />
+                      {profile?.full_name || 'User'}
+                      {isAdmin && <Badge className="ml-2" variant="secondary">Admin</Badge>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsAuthModalOpen(true)}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              )}
             </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden py-4 border-t">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Search for food..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <nav className="space-y-2">
-                  <a href="#menu" className="block text-gray-700 hover:text-orange-500 font-medium">Menu</a>
-                  <a href="#about" className="block text-gray-700 hover:text-orange-500 font-medium">About</a>
-                  <a href="#contact" className="block text-gray-700 hover:text-orange-500 font-medium">Contact</a>
-                  <Button variant="ghost" className="w-full justify-start">
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </Button>
-                </nav>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
-      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
+      
+      <CartSidebar 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+      />
     </>
   );
 };
