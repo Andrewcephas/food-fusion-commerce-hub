@@ -1,22 +1,22 @@
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useCart } from '@/hooks/useCart';
-import { useAuth } from '@/hooks/useAuth';
-import ProductModal from './ProductModal';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Minus } from 'lucide-react';
 
 interface Product {
   id: string;
   name: string;
+  description: string;
   price: number;
   image_url: string;
-  description: string;
+  category_id: string;
   in_stock: number;
   low_stock_threshold: number;
+  is_available: boolean;
   customizations: any[];
   categories?: {
     name: string;
@@ -25,113 +25,117 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart?: (product: Product, quantity: number) => void;
+  showQuantityControls?: boolean;
+  showAddButton?: boolean;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { toast } = useToast();
+const ProductCard = ({ 
+  product, 
+  onAddToCart, 
+  showQuantityControls = false,
+  showAddButton = true 
+}: ProductCardProps) => {
   const { addToCart } = useCart();
-  const { user } = useAuth();
+  const { toast } = useToast();
+  const [quantity, setQuantity] = React.useState(1);
 
-  const isLowStock = product.in_stock <= product.low_stock_threshold;
-  const isOutOfStock = product.in_stock === 0;
-
-  const handleQuickAdd = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      toast({
-        title: "Please log in",
-        description: "You need to be logged in to add items to cart",
-        variant: "destructive",
-      });
-      return;
+  const handleAddToCart = () => {
+    if (onAddToCart) {
+      onAddToCart(product, quantity);
+    } else {
+      addToCart(product, quantity);
     }
-
-    if (isOutOfStock) return;
     
-    try {
-      await addToCart(product.id, 1);
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart",
-        variant: "destructive",
-      });
+    toast({
+      title: "Added to cart",
+      description: `${quantity}x ${product.name} added to cart`,
+    });
+  };
+
+  const incrementQuantity = () => {
+    if (quantity < product.in_stock) {
+      setQuantity(prev => prev + 1);
+    }
+  };
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
     }
   };
 
   return (
-    <>
-      <Card 
-        className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-        onClick={() => setIsModalOpen(true)}
-      >
-        <div className="relative overflow-hidden rounded-t-lg">
-          <img
-            src={product.image_url}
-            alt={product.name}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute top-2 left-2 space-y-1">
-            {product.categories && (
-              <Badge variant="secondary" className="bg-white/90 text-gray-700">
-                {product.categories.name}
-              </Badge>
-            )}
-            {isLowStock && !isOutOfStock && (
-              <Badge variant="destructive" className="bg-yellow-500 hover:bg-yellow-600">
-                Low Stock
-              </Badge>
-            )}
-            {isOutOfStock && (
-              <Badge variant="destructive">
-                Out of Stock
-              </Badge>
-            )}
-          </div>
-          <div className="absolute top-2 right-2">
-            <Badge className="bg-green-500 hover:bg-green-600 text-white">
+    <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="relative">
+        <img
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-48 object-cover"
+        />
+        {product.in_stock <= product.low_stock_threshold && (
+          <Badge variant="destructive" className="absolute top-2 right-2">
+            Low Stock
+          </Badge>
+        )}
+        {!product.is_available && (
+          <Badge variant="secondary" className="absolute top-2 left-2">
+            Unavailable
+          </Badge>
+        )}
+      </div>
+      
+      <CardContent className="flex-1 flex flex-col justify-between p-4">
+        <div>
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xl font-bold text-orange-600">
               KES {product.price.toFixed(2)}
-            </Badge>
+            </span>
+            <span className="text-sm text-gray-500">
+              Stock: {product.in_stock}
+            </span>
           </div>
         </div>
 
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 group-hover:text-orange-600 transition-colors">
-            {product.name}
-          </h3>
-          <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-            {product.description}
-          </p>
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <span>In Stock: {product.in_stock}</span>
-            <span>{product.customizations?.length || 0} options</span>
+        {showQuantityControls && (
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={decrementQuantity}
+              disabled={quantity <= 1}
+              className="h-8 w-8"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={incrementQuantity}
+              disabled={quantity >= product.in_stock}
+              className="h-8 w-8"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
-        </CardContent>
+        )}
 
-        <CardFooter className="p-4 pt-0">
+        {showAddButton && (
           <Button
-            onClick={handleQuickAdd}
-            disabled={isOutOfStock}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:bg-gray-300"
+            onClick={handleAddToCart}
+            disabled={!product.is_available || product.in_stock === 0}
+            className="w-full bg-orange-500 hover:bg-orange-600"
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {isOutOfStock ? "Out of Stock" : "Quick Add"}
+            {!product.is_available ? 'Unavailable' : 
+             product.in_stock === 0 ? 'Out of Stock' : 
+             'Add to Cart'}
           </Button>
-        </CardFooter>
-      </Card>
-
-      <ProductModal
-        product={product}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

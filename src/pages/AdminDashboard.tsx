@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,12 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { Edit, Trash2, Plus, Users, TrendingUp, ShoppingCart, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, profile, loading: authLoading } = useAuth();
   const { products, refetch } = useProducts();
   const { categories } = useCategories();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('products');
@@ -40,6 +41,23 @@ const AdminDashboard = () => {
     in_stock: '',
     image_url: '',
   });
+
+  React.useEffect(() => {
+    console.log('AdminDashboard - isAdmin:', isAdmin);
+    console.log('AdminDashboard - profile:', profile);
+    console.log('AdminDashboard - authLoading:', authLoading);
+    
+    if (!authLoading && !isAdmin) {
+      console.log('Redirecting to admin login - not admin');
+      navigate('/admin/login');
+      return;
+    }
+    
+    if (isAdmin) {
+      fetchStats();
+      fetchUsers();
+    }
+  }, [isAdmin, profile, authLoading, navigate]);
 
   React.useEffect(() => {
     if (isAdmin) {
@@ -96,13 +114,29 @@ const AdminDashboard = () => {
     }
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-gray-600">You need admin privileges to access this page.</p>
+          <p className="text-gray-600 mb-4">You need admin privileges to access this page.</p>
+          <Button onClick={() => navigate('/admin/login')} className="bg-orange-500 hover:bg-orange-600">
+            Go to Admin Login
+          </Button>
         </div>
       </div>
     );

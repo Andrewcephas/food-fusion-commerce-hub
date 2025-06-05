@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('admin@kenyaeats.com');
@@ -14,27 +15,41 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   React.useEffect(() => {
+    console.log('AdminLogin - user:', user);
+    console.log('AdminLogin - isAdmin:', isAdmin);
+    
     if (user && isAdmin) {
-      window.location.href = '/admin';
+      console.log('Redirecting to admin dashboard');
+      navigate('/admin');
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      console.log('Attempting admin login with:', email);
       await signIn(email, password);
+      
       toast({
         title: "Login successful",
         description: "Welcome to the admin panel",
       });
+      
+      // Small delay to allow auth state to update
+      setTimeout(() => {
+        navigate('/admin');
+      }, 1000);
+      
     } catch (error: any) {
+      console.error('Admin login error:', error);
       toast({
         title: "Login failed",
-        description: error.message,
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -93,7 +108,7 @@ const AdminLogin = () => {
 
           <Button
             variant="outline"
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="w-full mt-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
