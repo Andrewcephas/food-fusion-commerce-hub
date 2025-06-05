@@ -10,17 +10,14 @@ interface CategoryFilterProps {
 
 const CategoryFilter = ({ categories, selectedCategory, onCategoryChange }: CategoryFilterProps) => {
   return (
-    <div className="flex flex-wrap justify-center gap-2 mb-6">
+    <div className="flex flex-wrap gap-2 justify-center">
       {categories.map((category) => (
         <Button
           key={category}
           variant={selectedCategory === category ? "default" : "outline"}
+          size="sm"
           onClick={() => onCategoryChange(category)}
-          className={`transition-all duration-200 ${
-            selectedCategory === category 
-              ? "bg-orange-500 hover:bg-orange-600 text-white" 
-              : "hover:bg-orange-50 hover:border-orange-300 hover:text-orange-600"
-          }`}
+          className={selectedCategory === category ? "bg-orange-500 hover:bg-orange-600" : ""}
         >
           {category}
         </Button>

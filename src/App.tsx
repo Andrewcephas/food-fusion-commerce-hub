@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import POSSystem from "./pages/POSSystem";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminLogin from "./pages/AdminLogin";
 import CheckoutPage from "./pages/CheckoutPage";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/pos" element={<POSSystem />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
