@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,7 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product, quantity: number) => void;
+  onAddToCart?: (productId: string, quantity: number) => void;
   showQuantityControls?: boolean;
   showAddButton?: boolean;
 }
@@ -42,7 +41,7 @@ const ProductCard = ({
 
   const handleAddToCart = () => {
     if (onAddToCart) {
-      onAddToCart(product, quantity);
+      onAddToCart(product.id, quantity);
     } else {
       addToCart(product, quantity);
     }

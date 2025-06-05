@@ -1,60 +1,28 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AdminLoginForm from '@/components/admin/AdminLoginForm';
+import AdminCredentialsInfo from '@/components/admin/AdminCredentialsInfo';
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState('admin@kenyaeats.com');
-  const [password, setPassword] = useState('admin123');
-  const [loading, setLoading] = useState(false);
-  const { signIn, user, isAdmin } = useAuth();
-  const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    console.log('AdminLogin - user:', user);
-    console.log('AdminLogin - isAdmin:', isAdmin);
-    
     if (user && isAdmin) {
-      console.log('Redirecting to admin dashboard');
       navigate('/admin');
     }
   }, [user, isAdmin, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      console.log('Attempting admin login with:', email);
-      await signIn(email, password);
-      
-      toast({
-        title: "Login successful",
-        description: "Welcome to the admin panel",
-      });
-      
-      // Small delay to allow auth state to update
-      setTimeout(() => {
-        navigate('/admin');
-      }, 1000);
-      
-    } catch (error: any) {
-      console.error('Admin login error:', error);
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleLoginSuccess = () => {
+    // Force navigation after a brief delay to allow auth state to update
+    setTimeout(() => {
+      navigate('/admin');
+    }, 500);
   };
 
   return (
@@ -68,44 +36,8 @@ const AdminLogin = () => {
           <p className="text-gray-600">Kenya Eats Management System</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@kenyaeats.com"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-          
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Demo Admin Credentials:</h3>
-            <p className="text-sm text-gray-600">Email: admin@kenyaeats.com</p>
-            <p className="text-sm text-gray-600">Password: admin123</p>
-          </div>
-
+          <AdminLoginForm onSuccess={handleLoginSuccess} />
+          <AdminCredentialsInfo />
           <Button
             variant="outline"
             onClick={() => navigate('/')}
