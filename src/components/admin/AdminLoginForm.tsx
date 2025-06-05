@@ -11,8 +11,8 @@ interface AdminLoginFormProps {
 }
 
 const AdminLoginForm = ({ onSuccess }: AdminLoginFormProps) => {
-  const [email, setEmail] = useState('admin@kenyaeats.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
@@ -48,7 +48,7 @@ const AdminLoginForm = ({ onSuccess }: AdminLoginFormProps) => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@kenyaeats.com"
+          placeholder="Enter your admin email"
           required
         />
       </div>
@@ -59,7 +59,7 @@ const AdminLoginForm = ({ onSuccess }: AdminLoginFormProps) => {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter password"
+          placeholder="Enter your password"
           required
         />
       </div>

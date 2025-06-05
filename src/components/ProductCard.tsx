@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ const ProductCard = ({
     if (onAddToCart) {
       onAddToCart(product.id, quantity);
     } else {
-      addToCart(product, quantity);
+      addToCart(product.id, quantity); // Fixed: pass product.id instead of product
     }
     
     toast({
