@@ -39,7 +39,7 @@ const Header = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-orange-600">Kenya Eats</h1>
-              <p className="text-sm text-gray-600 hidden sm:block">Authentic Kenyan Cuisine</p>
+              <p className="text-sm text-gray-600 hidden sm:block">Powered by Catech Solutions and Graphics</p>
             </div>
 
             <nav className="hidden md:flex items-center space-x-6">
@@ -60,7 +60,6 @@ const Header = () => {
             </nav>
 
             <div className="flex items-center space-x-4">
-              {/* Cart Button */}
               <Button
                 variant="outline"
                 size="sm"
@@ -75,7 +74,6 @@ const Header = () => {
                 )}
               </Button>
 
-              {/* User Authentication */}
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
