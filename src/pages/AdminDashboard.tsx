@@ -14,14 +14,12 @@ import ProductInventoryTable from '@/components/admin/ProductInventoryTable';
 import UserManagementTable from '@/components/admin/UserManagementTable';
 import { seedKenyanFood } from '@/utils/seedData';
 import { Plus, Database } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const { user, isAdmin, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { products, refetch } = useProducts();
   const { categories, refetch: refetchCategories } = useCategories();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('products');
   const [seedingData, setSeedingData] = useState(false);
@@ -34,27 +32,9 @@ const AdminDashboard = () => {
   });
 
   React.useEffect(() => {
-    console.log('AdminDashboard - user:', user);
-    console.log('AdminDashboard - isAdmin:', isAdmin);
-    console.log('AdminDashboard - authLoading:', authLoading);
-    
-    if (!authLoading && !user) {
-      console.log('Redirecting to admin login - no user');
-      navigate('/admin/login');
-      return;
-    }
-    
-    if (!authLoading && user && !isAdmin) {
-      console.log('Redirecting to admin login - not admin');
-      navigate('/admin/login');
-      return;
-    }
-    
-    if (user && isAdmin) {
-      fetchStats();
-      fetchUsers();
-    }
-  }, [user, isAdmin, authLoading, navigate]);
+    fetchStats();
+    fetchUsers();
+  }, []);
 
   const fetchStats = async () => {
     try {
@@ -148,21 +128,6 @@ const AdminDashboard = () => {
     );
   }
 
-  if (!user || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You need admin privileges to access this page.</p>
-          <Button onClick={() => navigate('/admin/login')} className="bg-orange-500 hover:bg-orange-600">
-            Go to Admin Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -181,7 +146,7 @@ const AdminDashboard = () => {
               {seedingData ? 'Adding Sample Data...' : 'Add Sample Food Data'}
             </Button>
             <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-              Welcome, {profile?.full_name || 'Admin'}
+              Welcome, {profile?.full_name || user?.email || 'Admin'}
             </Badge>
           </div>
         </div>
